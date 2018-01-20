@@ -12,7 +12,7 @@ def get_responsibility_matrix_indices(training_vectors, new_points, k):
 
 def get_responsibility_matrix(training_vectors, new_points, k):
     indices = get_responsibility_matrix_indices(training_vectors, new_points, k)
-    responsibility_value = 1/k
+    responsibility_value = tf.cast(1/k, dtype=tf.float64)
     off_value = tf.constant(0, dtype=tf.float64)
     r_depth = training_vectors.shape[0]
     r = tf.one_hot(indices=tf.transpose(indices), depth=r_depth, on_value=responsibility_value, off_value=off_value, dtype=tf.float64)
