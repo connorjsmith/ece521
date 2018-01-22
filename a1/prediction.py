@@ -36,7 +36,7 @@ def prediction():
         r_matrix = get_responsibility_matrix(trainData, X, k)
         y_preds = tf.reduce_sum(tf.transpose(trainTarget) * r_matrix, axis=-1)
         y_preds = tf.reshape(y_preds, [-1,1])
-        error = tf.sqrt(tf.reduce_sum(tf.square(Y-y_preds)))
+        error = tf.reduce_sum(tf.square(Y-y_preds)) / (2*X.shape[0])
         print("    set=%s error=%lf" % (name,error.eval()))
       print("\n")
     
