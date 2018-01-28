@@ -50,7 +50,7 @@ def regression():
         
     return y_hat
 
-def plot_combined(y_hat):
+def plot_combined(y_hat_list):
     
     # Create a figure of size 8x6 inches, 80 dots per inch
     plt.figure(figsize=(8, 6), dpi=80)
@@ -58,74 +58,64 @@ def plot_combined(y_hat):
     # Create a new subplot from a grid of 1x1
     plt.subplot(1, 1, 1)
     
+    # Prepare data
     (data, targets, __) = get_dataset();
     x = np.linspace(0.0,11.0,num = 1000)[:,np.newaxis]
-    y1 = tf.transpose(y_hat[0][0]).eval()
-    y2 = tf.transpose(y_hat[1][0]).eval()
-    y3 = tf.transpose(y_hat[2][0]).eval()
-    y4 = tf.transpose(y_hat[3][0]).eval()
     
-    plt.plot(x, y1, color="blue", linewidth=1.0, linestyle="-", label="k = " + str(y_hat[0][1]))    
-    plt.plot(x, y2, color="green", linewidth=1.0, linestyle="-", label="k = " + str(y_hat[1][1]))   
-    plt.plot(x, y3, color="red", linewidth=1.0, linestyle="-", label="k = " + str(y_hat[2][1]))
-    plt.plot(x, y4, color="purple", linewidth=1.0, linestyle="-", label="k = " + str(y_hat[3][1]))
+    # Plot data points
+    plt.plot(data, targets, 'o', color='#7f7f7f', markersize=4., label="Dataset")
     
-    plt.plot(data, targets, 'o', markersize=4., label="Dataset")
+    # Plot regression lines
+    y = []
+    for i in range(0,len(y_hat_list)):
+        y.append(tf.transpose(y_hat_list[i][0]).eval())
+        plt.plot(x, y[i], linewidth=1.0, linestyle="-", label="k = " + str(y_hat_list[i][1]))
     
-    # Set x limits
+    # Set limits and ticks
     plt.xlim(0.0, 11.0)
-    
-    # Set x ticks
     plt.xticks(np.linspace(0, 11, 12, endpoint=True))
-    
-    # Set y limits
     plt.ylim(-2.0, 10.0)
-    
-    # Set y ticks
     plt.yticks(np.linspace(-2, 10, 13, endpoint=True))
     
-    # Legend
+    # Add legend
     plt.legend(loc='upper left')
     
-    # Save figure using 72 dots per inch
+    # Save figure to file
     plt.savefig("combined.pdf", format="pdf")
     
     # Show result on screen
     plt.show()
     
-def plot_individual(y_hat,k_ind):
-    
+def plot_individual(y_hat):
+
     # Create a figure of size 8x6 inches, 80 dots per inch
     plt.figure(figsize=(8, 6), dpi=80)
     
     # Create a new subplot from a grid of 1x1
     plt.subplot(1, 1, 1)
     
+    # Prepare data
     (data, targets, __) = get_dataset();
     x = np.linspace(0.0,11.0,num = 1000)[:,np.newaxis]
-    y = tf.transpose(y_hat[k_ind][0]).eval()
-    k = y_hat[k_ind][1]
+
+    # Plot data points
+    plt.plot(data, targets, 'o', color='#7f7f7f', markersize=4., label="Dataset")
     
+    # Plot regression line
+    y = tf.transpose(y_hat[0]).eval()
+    k = y_hat[1]    
     plt.plot(x, y, color="red", linewidth=1.0, linestyle="-", label="k = " + str(k))    
     
-    plt.plot(data, targets, 'o', markersize=4., label="Dataset")
-    
-    # Set x limits
+    # Set limits and ticks
     plt.xlim(0.0, 11.0)
-    
-    # Set x ticks
     plt.xticks(np.linspace(0, 11, 12, endpoint=True))
-    
-    # Set y limits
     plt.ylim(-2.0, 10.0)
-    
-    # Set y ticks
     plt.yticks(np.linspace(-2, 10, 13, endpoint=True))
     
-    # Legend
+    # Add legend
     plt.legend(loc='upper left')
     
-    # Save figure using 72 dots per inch
+    # Save figure to file
     plt.savefig("k" + str(k) + "-plot.pdf", format="pdf")
     
     # Show result on screen
@@ -136,4 +126,7 @@ if __name__ == '__main__':
     init = tf.global_variables_initializer()
     sess.run(init)
     
-    test = regression()
+    y_hat_list = regression()
+    plot_combined(y_hat_list)
+    for y_hat in y_hat_list:
+        plot_individual(y_hat)
