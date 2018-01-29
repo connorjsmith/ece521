@@ -38,7 +38,7 @@ def kNN_classification(test_point, in_features, targets, k):
     
     outputs = tf.gather_nd(red_class_list, count_loc)
 
-    return outputs
+    return (outputs, ind)
 
 # Takes in 2 vectors and returns the % of occurances they are the same elementwise
 def classification_performance(results, targets): 

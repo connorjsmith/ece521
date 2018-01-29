@@ -39,46 +39,78 @@ def data_segmentation(data_path, target_path, task):
 def form_picture(data, index):
     pictures = np.reshape(data, [-1,32,32])
     return pictures[index]
-    
-sess = tf.InteractiveSession()
-init = tf.global_variables_initializer()
-sess.run(init)
 
-k = [1,5,10,25,50,100,200]
+def print_pictures(dataset, indeces, print_type):
+    
+    types = ["NN-Name-", "NN-Gender-", "OO-Name-", "OO-Gender-"]
+    
+    for i in range(0, len(indeces)):
+        pic = np.reshape(dataset[indeces[i]], [-32,32])
+        plt.imshow(pic, cmap="gray")
+        
+        # Save figure to file
+        plt.savefig(types[print_type] + str(i) + ".pdf", format="pdf")
+        
+        # Show result on screen
+        plt.show() 
 
-# Name classification
-(trainData, validData, testData, trainTarget, validTarget, testTarget) = data_segmentation("data.npy", "target.npy", 1)
+def perform_classification(NN_type):
+    
+    # List of nearest neighbours
+    k = [1,5,10,25,50,100,200]
 
-# Classification based on training data/targets
-classification_training = []
-performance_training = []
-for i in range(0,7):
-    classifications = kNN_classification(trainData, trainData, trainTarget, k[i])
-    classification_training.append(classifications)
+    # Load dataset
+    (trainData, validData, testData, trainTarget, validTarget, testTarget) = data_segmentation("data.npy", "target.npy", NN_type)
     
-    performance = classification_performance(classifications, trainTarget)
-    performance_training.append(performance)
-
-# Classification based on validation data/targets
-classification_validation = []
-performance_validation = []
-for i in range(0,7):
-    classifications = kNN_classification(validData, trainData, trainTarget, k[i])
-    classification_validation.append(classifications)
+    # Classification based on training data/targets
+    classification_training = []
+    performance_training = []
+    for i in range(0,len(k)):
+        classifications = kNN_classification(trainData, trainData, trainTarget, k[i])
+        classification_training.append(classifications)
+        
+        performance = classification_performance(classifications[0], trainTarget)
+        performance_training.append(performance)
     
-    performance = classification_performance(classifications, validTarget)
-    performance_validation.append(performance)
+    # Classification based on validation data/targets
+    classification_validation = []
+    performance_validation = []
+    for i in range(0,len(k)):
+        classifications = kNN_classification(validData, trainData, trainTarget, k[i])
+        classification_validation.append(classifications)
+        
+        performance = classification_performance(classifications[0], validTarget)
+        performance_validation.append(performance)
+        
+    # Classification based on test data/targets
+    classification_test = []
+    performance_test = []
+    for i in range(0,len(k)):
+        classifications = kNN_classification(testData, trainData, trainTarget, k[i])
+        classification_test.append(classifications)
+        
+        performance = classification_performance(classifications[0], testTarget)
+        performance_test.append(performance)
     
-# Classification based on test data/targets
-classification_test = []
-performance_test = []
-for i in range(0,7):
-    classifications = kNN_classification(testData, trainData, trainTarget, k[i])
-    classification_test.append(classifications)
+    return (classification_training, performance_training, classification_validation, \
+            performance_validation, classification_test, performance_test)
     
-    performance = classification_performance(classifications, testTarget)
-    performance_test.append(performance)
+if __name__ == '__main__':   
+    sess = tf.InteractiveSession()
+    init = tf.global_variables_initializer()
+    sess.run(init)
     
-
-#plt.imshow(form_picture(trainData,0), cmap="gray")
-#plt.show()
+    NN_type = 1
+    
+    (trainData, validData, testData, trainTarget, validTarget, testTarget) = data_segmentation("data.npy", "target.npy", NN_type)
+    (classification_training, performance_training, classification_validation, \
+            performance_validation, classification_test, performance_test) = perform_classification(NN_type)
+    
+    # Picture at index = 0 is known to misclassify the name (0 instead of 3)
+    if NN_type == 0:
+        print_pictures(validData, [0], NN_type+2)
+        print_pictures(trainData, classification_validation[2][1][0].eval(), NN_type)
+     # Picture at index = 1 is known to misclassify the gender (1 instead of 0)
+    else:
+        print_pictures(validData, [1], NN_type+2)
+        print_pictures(trainData, classification_validation[2][1][1].eval(), NN_type)
