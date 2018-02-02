@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Jan 22 15:51:29 2018
-
-@author: Jeffrey
-"""
-
 import tensorflow as tf
 from euclidean_distance import euclidean_distance
 
@@ -40,7 +33,7 @@ def kNN_classification(test_point, in_features, targets, k):
 
     return (outputs, ind)
 
-# Takes in 2 vectors and returns the % of occurances they are the same elementwise
+# Takes in 2 vectors and returns the % of occurrences they are the same elementwise
 def classification_performance(results, targets): 
     error = tf.count_nonzero(results - targets) / tf.cast(tf.shape(targets), tf.int64)
     return tf.cast(tf.constant(1.), tf.float64) - error

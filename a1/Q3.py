@@ -1,14 +1,10 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jan 18 19:57:54 2018
-
-@author: Jeffrey
-"""
-
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 from kNN_classification import *
+
+name_task = 0
+gender_task = 1
 
 def data_segmentation(data_path, target_path, task):
 # task = 0 >> select the name ID targets for face recognition task
@@ -100,14 +96,15 @@ if __name__ == '__main__':
     init = tf.global_variables_initializer()
     sess.run(init)
     
-    NN_type = 1
+    # Put the task type here
+    NN_type = name_task
     
     (trainData, validData, testData, trainTarget, validTarget, testTarget) = data_segmentation("data.npy", "target.npy", NN_type)
     (classification_training, performance_training, classification_validation, \
             performance_validation, classification_test, performance_test) = perform_classification(NN_type)
     
     # Picture at index = 0 is known to misclassify the name (0 instead of 3)
-    if NN_type == 0:
+    if NN_type == name_task:
         print_pictures(validData, [0], NN_type+2)
         print_pictures(trainData, classification_validation[2][1][0].eval(), NN_type)
      # Picture at index = 1 is known to misclassify the gender (1 instead of 0)
