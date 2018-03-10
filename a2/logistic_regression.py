@@ -9,7 +9,9 @@ def binary_cross_entropy():
         decay = 0.01
         B = 500
         learning_rates = [0.001]
-        iters = 100
+        iters = 20000
+        num_iters_per_epoch = len(xTrain)//B # number of iterations we have to do for one epoch
+        print("Num epochs = ",iters/num_iters_per_epoch)
 
         # optimized parameters
         w = tf.Variable(tf.zeros([784,1]), dtype=tf.float32, name="weight-vector")
@@ -33,7 +35,9 @@ def binary_cross_entropy():
         # optimizer function
         optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
 
+        rate_loss_dict = dict()
         for r in learning_rates:
+            loss_amounts = []
             with tf.Session() as sess:
                 sess.run(tf.global_variables_initializer())
                 sess.run(tf.local_variables_initializer())
@@ -41,16 +45,18 @@ def binary_cross_entropy():
                 coord = tf.train.Coordinator()
                 threads = tf.train.start_queue_runners(sess=sess, coord=coord)
                 for i in range(iters):
-                    print("iteration", i)
                     # run one iteration of the optimizer
                     sess.run([optimizer], feed_dict={learning_rate: r})
                     # calculate our loss for this iteration
-                    loss_amount = sess.run(loss)
-                    print("loss =", loss_amount)
+                    if (i % num_iters_per_epoch == 0):
+                        loss_amount = sess.run(loss)
+                        print("Epoch {}, loss = {}".format(i//num_iters_per_epoch, loss_amount))
+                        loss_amounts.append(loss_amount)
                 coord.request_stop()
                 coord.join(threads)
+            rate_loss_dict[r] = loss_amounts
 
 
 
 binary_cross_entropy()
-    
+
