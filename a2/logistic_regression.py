@@ -1,5 +1,21 @@
 import tensorflow as tf
+import matplotlib.pyplot as plt
 import util
+
+def plot_data(data_arr, name):
+    plt.figure(figsize=(8, 6), dpi=80)
+
+    plt.subplot(1, 1, 1)
+
+    epoch = 1
+    for y in data_arr:
+        plt.plot(y, linewidth=1.0, linestyle='-', label=r'$\eta$' + " = " + str(epoch))
+        epoch += 1
+
+    plt.xlabel("# of Epochs")
+    plt.ylabel("MSE")
+    plt.legend(loc="upper right")
+    plt.savefig(name, format="pdf")
 
 
 def binary_cross_entropy():
@@ -54,9 +70,11 @@ def binary_cross_entropy():
                         loss_amounts.append(loss_amount)
                 coord.request_stop()
                 coord.join(threads)
+            plot_data(loss_amounts, "log_loss_str(r)")
             rate_loss_dict[r] = loss_amounts
 
 
 
+plot_data([], "test")
 binary_cross_entropy()
 
