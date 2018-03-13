@@ -89,6 +89,7 @@ def SGD(xTrain, yTrain, batchSize, iters, learning_rate, decay_coefficient):
         if current_minibatch == 0:
             training_order = np.random.permutation(indeces)
             loss_per_epoch.append(MSE_loss(weights, x, y, decay_coefficient))
+            print(loss_per_epoch)
 #            x_minibatch = tf.train.shuffle_batch([tf.transpose(x)], batch_size = batchSize, enqueue_many = True, capacity=np.shape(yTrain)[0], min_after_dequeue=batchSize, allow_smaller_final_batch=True)
 #            y_minibatch = tf.train.shuffle_batch([tf.transpose(y)], batch_size = batchSize, enqueue_many = True, capacity=np.shape(yTrain)[0], min_after_dequeue=batchSize, allow_smaller_final_batch=True)
         
