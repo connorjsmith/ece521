@@ -30,8 +30,9 @@ def multiclass_not_mnist():
     with tf.Graph().as_default():
         decay = 0.01
         B = 500
-        iters = 5000
-        learning_rate = tf.constant(0.001, dtype=tf.float32, name="learning-rate")
+        iters = 10000
+        learning_rates = [0.001, 0.005, 0.0025, 0.0005, 0.0001]
+        learning_rate = tf.placeholder(dtype=tf.float32, name="learning-rate")
         
 
         num_iters_per_epoch = len(xTrain)//B # number of iterations we have to do for one epoch
@@ -65,27 +66,29 @@ def multiclass_not_mnist():
         # optimizer function
         optimizer = tf.train.AdamOptimizer(learning_rate).minimize(softmaxLoss)
 
-        loss_amounts = []
-        valid_accuracies = []
-        train_accuracies = []
-        with tf.Session() as sess:
-            coord = tf.train.Coordinator()
-            threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-            sess.run(tf.global_variables_initializer())
-            sess.run(tf.local_variables_initializer())
-            for i in range(iters):
-                sess.run([optimizer], feed_dict={learning_rate: 0.001})
-                if (i % num_iters_per_epoch == 0):
-                    loss_amount, train_acc, valid_acc = sess.run([softmaxLoss, train_accuracy, valid_accuracy])
-                    loss_amounts.append(loss_amount)
-                    valid_accuracies.append(valid_acc)
-                    train_accuracies.append(train_acc)
-                    print("Epoch: {}, Loss: {}, trainAcc: {}".format(i//num_iters_per_epoch, loss_amount, train_acc))
-            coord.request_stop()
-            coord.join(threads)
-            np.save("2.2.1_notmnist_loss", loss_amounts)
-            np.save("2.2.1_notmnist_v_acc", valid_accuracies)
-            np.save("2.2.1_notmnist_t_acc", train_accuracies)
+        for r in learning_rates:
+            print("Running learning rate", r)
+            loss_amounts = []
+            valid_accuracies = []
+            train_accuracies = []
+            with tf.Session() as sess:
+                coord = tf.train.Coordinator()
+                threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+                sess.run(tf.global_variables_initializer())
+                sess.run(tf.local_variables_initializer())
+                for i in range(iters):
+                    sess.run([optimizer], feed_dict={learning_rate: r})
+                    if (i % num_iters_per_epoch == 0):
+                        loss_amount, train_acc, valid_acc = sess.run([softmaxLoss, train_accuracy, valid_accuracy])
+                        loss_amounts.append(loss_amount)
+                        valid_accuracies.append(valid_acc)
+                        train_accuracies.append(train_acc)
+                        print("Epoch: {}, Loss: {}, trainAcc: {}".format(i//num_iters_per_epoch, loss_amount, train_acc))
+                coord.request_stop()
+                coord.join(threads)
+                np.save("2.2.1_{}_notmnist_loss".format(r), loss_amounts)
+                np.save("2.2.1_{}_notmnist_v_acc".format(r), valid_accuracies)
+                np.save("2.2.1_{}_notmnist_t_acc".format(r), train_accuracies)
 
 
 multiclass_not_mnist()
