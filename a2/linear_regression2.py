@@ -132,6 +132,7 @@ def effect_of_minibatch_size():
     plt.title("MSE vs Epoch")
     plt.legend()
     plt.show()
+    return loss
 
 
 def generalization():
