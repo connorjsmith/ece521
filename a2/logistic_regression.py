@@ -14,7 +14,7 @@ def binary_cross_entropy(Q=1):
         print("Num epochs = ",iters/num_iters_per_epoch)
 
         # optimized parameters
-        w = tf.Variable(tf.random_normal([784,1], seed=521), dtype=tf.float32, name="weight-vector")
+        w = tf.Variable(tf.truncated_normal(shape=[784,1], stddev=0.5, seed=521), dtype=tf.float32, name="weight-vector")
         b = tf.Variable(tf.zeros([1]), dtype=tf.float32, name="bias-term")
 
         # hyperparameters
@@ -134,7 +134,8 @@ def binary_cross_entropy(Q=1):
             train_accuracies = []
             lin_t_y_pred = tf.minimum(tf.maximum(tf.ceil(tf.matmul(xTrainTensor, w) + b), 0), 1)
             lin_v_y_pred = tf.minimum(tf.maximum(tf.ceil(tf.matmul(xValidTensor, w) + b), 0), 1)
-            linearLoss = tf.reduce_mean(tf.square(y_pred - ybatch))
+            linearLoss = tf.reduce_mean(tf.square(y_pred - ybatch))/2
+            linearLoss_epoch = tf.reduce_mean(tf.square(tf.matmul(xTrainTensor, w) + b - yTrainTensor))/2
             lin_accuracy = tf.count_nonzero(tf.equal(tf.minimum(tf.maximum(tf.ceil(y_pred), 0), 1), ybatch)) / yTrainTensor.shape[0]
             lin_t_accuracy = tf.count_nonzero(tf.equal(lin_t_y_pred, yTrainTensor)) / yTrainTensor.shape[0]
             lin_v_accuracy = tf.count_nonzero(tf.equal(lin_v_y_pred, yValidTensor)) / yValidTensor.shape[0]
@@ -150,7 +151,7 @@ def binary_cross_entropy(Q=1):
                     sess.run([linearOptimizer], feed_dict={learning_rate: 0.001})
                     # calculate our loss for this iteration
                     if (i % num_iters_per_epoch == 0):
-                        loss_amount, train_acc, valid_acc = sess.run([linearLoss, lin_t_accuracy, lin_v_accuracy])
+                        loss_amount, train_acc, valid_acc = sess.run([linearLoss_epoch, lin_t_accuracy, lin_v_accuracy])
                         print("Epoch {}, loss = {}".format(i//num_iters_per_epoch, loss_amount))
                         print("\t Train Acc = {}, Valid Acc = {}".format(train_acc, valid_acc))
                         loss_amounts.append(loss_amount)
@@ -165,4 +166,4 @@ def binary_cross_entropy(Q=1):
                 
             
 
-binary_cross_entropy(2)
+binary_cross_entropy(3)
