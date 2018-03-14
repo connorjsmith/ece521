@@ -1,0 +1,23 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(8,6), dpi=80)
+plt.subplot(1,1,1)
+log_v = np.load("2.1.3_Log_v_acc.npy")
+log_l = np.load("2.1.3_Log_loss.npy")
+log_t = np.load("2.1.3_Log_t_acc.npy")
+lin_v = np.load("2.1.3_Lin_v_acc.npy")
+lin_l = np.load("2.1.3_Lin_loss.npy")
+lin_t = np.load("2.1.3_Lin_t_acc.npy")
+plt.plot(log_v, linewidth=1.0, linestyle='-', label="Logistic Regression Validation Data Accuracy")
+plt.plot(log_t, linewidth=1.0, linestyle='-', label="Logistic Regression Training Data Accuracy")
+plt.plot(log_l, linewidth=1.0, linestyle='-', label="Logistic Regression Cross-Entropy Loss")
+plt.plot(lin_v, linewidth=1.0, linestyle='-', label="Linear Regression Validation Data Accuracy")
+plt.plot(lin_t, linewidth=1.0, linestyle='-', label="Linear Regression Training Data Accuracy")
+plt.plot(lin_l, linewidth=1.0, linestyle='-', label="Linear Regression MSE Loss")
+plt.title("Weight-Decay λ=0.01, Mini-Batch Size B=500, Training Rate η = 0.001", fontsize=10)
+plt.xlabel("# of Epochs")
+plt.ylabel("Training Loss (Cross-Entropy Loss)")
+plt.legend(title="Training Rate ()", loc="upper right")
+plt.grid('on', linestyle='-', linewidth=0.5)
+plt.savefig("lin_vs_log.pdf", format="pdf")

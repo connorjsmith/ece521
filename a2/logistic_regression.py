@@ -1,61 +1,12 @@
 import tensorflow as tf
-import matplotlib.pyplot as plt
 import numpy as np
 import util
 
-def plot_data_learning(data_vector, names, pdf_name):
-    plt.figure(figsize=(8, 6), dpi=80)
-    plt.subplot(1, 1, 1)
-
-    for (y, name) in zip(data_vector, names):
-        plt.plot(y, linewidth=1.0, linestyle='-', label=name)
-
-    plt.suptitle("Cross-Entropy Loss vs. Number of Epochs (Part 2.1 Q1)", fontsize=14, y=0.97)
-    plt.title("Weight-Decay λ=0.01, Mini-Batch Size B=500", fontsize=10)
-    plt.xlabel("# of Epochs")
-    plt.ylabel("Training Loss (Cross-Entropy Loss)")
-    plt.legend(title="Training Rate (η)", loc="upper right")
-    plt.grid('on', linestyle='-', linewidth=0.5)
-    plt.savefig(pdf_name, format="pdf")
-
-
-def plot_data_plain_SGD(data_vector, names, pdf_name):
-    plt.figure(figsize=(8, 6), dpi=80)
-    plt.subplot(1, 1, 1)
-
-    for (y, name) in zip(data_vector, names):
-        plt.plot(y, linewidth=1.0, linestyle='-', label=name)
-
-    plt.suptitle("Cross-Entropy Loss vs. Number of Epochs (Part 2.1 Q1)", fontsize=14, y=0.97)
-    plt.title("Weight-Decay λ=0.01, Mini-Batch Size B=500", fontsize=10)
-    plt.xlabel("# of Epochs")
-    plt.ylabel("Training Loss (Cross-Entropy Loss)")
-    plt.legend(title="Training Rate (η)", loc="upper right")
-    plt.grid('on', linestyle='-', linewidth=0.5)
-    plt.savefig(pdf_name, format="pdf")
-
-
-def plot_data_lin_regr_comparison(data_vector, names, pdf_name):
-    plt.figure(figsize=(8, 6), dpi=80)
-    plt.subplot(1, 1, 1)
-
-    for (y, name) in zip(data_vector, names):
-        plt.plot(y, linewidth=1.0, linestyle='-', label=name)
-
-    plt.suptitle("Cross-Entropy Loss vs. Number of Epochs (Part 2.1 Q1)", fontsize=14, y=0.97)
-    plt.title("Weight-Decay λ=0.01, Mini-Batch Size B=500", fontsize=10)
-    plt.xlabel("# of Epochs")
-    plt.ylabel("Training Loss (Cross-Entropy Loss)")
-    plt.legend(title="Training Rate (η)", loc="upper right")
-    plt.grid('on', linestyle='-', linewidth=0.5)
-    plt.savefig(pdf_name, format="pdf")
-
-
-def binary_cross_entropy():
+def binary_cross_entropy(Q=1):
     xTrain, yTrain, xValid, yValid, xTest, yTest = util.load_data()
 
     with tf.Graph().as_default():
-        decay = 0.01
+        decay = 0
         B = 500
         learning_rates = [0.005, 0.001, 0.0001]
         iters = 5000
@@ -63,7 +14,7 @@ def binary_cross_entropy():
         print("Num epochs = ",iters/num_iters_per_epoch)
 
         # optimized parameters
-        w = tf.Variable(tf.zeros([784,1]), dtype=tf.float32, name="weight-vector")
+        w = tf.Variable(tf.random_normal([784,1], seed=521), dtype=tf.float32, name="weight-vector")
         b = tf.Variable(tf.zeros([1]), dtype=tf.float32, name="bias-term")
 
         # hyperparameters
@@ -79,24 +30,81 @@ def binary_cross_entropy():
 
         Xbatch, ybatch = tf.train.batch([Xslice, yslice], batch_size = B)
 
-        # setting up loss function
+        # setting up batch loss function
         y_pred = tf.matmul(Xbatch, w) + b
-        loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=y_pred, labels=ybatch)) + decay/2 * tf.nn.l2_loss(w)
+        logLoss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=y_pred, labels=ybatch)) + decay * tf.nn.l2_loss(w)
+
+        # setting up epoch loss function
+        train_logLoss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=tf.matmul(xTrainTensor, w)+b, labels=yTrainTensor)) + decay * tf.nn.l2_loss(w)
 
         # accuracy function
-        train_y_pred = tf.matmul(xTrainTensor, w) + b
-        valid_y_pred = tf.matmul(xValidTensor, w) + b
-        train_accuracy = 1 - tf.count_nonzero(tf.equal(tf.round(train_y_pred), yTrainTensor)) / yTrainTensor.shape[0]
-        valid_accuracy = 1 - tf.count_nonzero(tf.equal(tf.round(valid_y_pred), yValidTensor)) / yValidTensor.shape[0]
+        train_y_pred = tf.round(tf.sigmoid(tf.matmul(xTrainTensor, w) + b))
+        valid_y_pred = tf.round(tf.sigmoid(tf.matmul(xValidTensor, w) + b))
+        train_accuracy = tf.count_nonzero(tf.equal(train_y_pred, yTrainTensor)) / yTrainTensor.shape[0]
+        valid_accuracy = tf.count_nonzero(tf.equal(valid_y_pred, yValidTensor)) / yValidTensor.shape[0]
 
         # optimizer function
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
+        gradientOptimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(logLoss)
 
-        for r in learning_rates:
+        if Q==2: # Part 2.1 Q2
+            adamOptimizer = tf.train.AdamOptimizer(learning_rate).minimize(logLoss)
+            for optimizer, name in [(gradientOptimizer, "Gradient Descent"), (adamOptimizer, "Adam Optimizer")]:
+                loss_amounts = []
+                valid_accuracies = []
+                train_accuracies = []
+                with tf.Session() as sess:
+                    coord = tf.train.Coordinator()
+                    threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+                    sess.run(tf.global_variables_initializer())
+                    sess.run(tf.local_variables_initializer())
+                    print("Running", name)
+                    for i in range(iters):
+                        sess.run([optimizer], feed_dict={learning_rate: 0.001})
+                        if (i % num_iters_per_epoch == 0):
+                            loss_amount, train_acc, valid_acc = sess.run([train_logLoss, train_accuracy, valid_accuracy])
+                            loss_amounts.append(loss_amount)
+                            valid_accuracies.append(valid_acc)
+                            train_accuracies.append(train_acc)
+                            print("Epoch: {}, Loss: {}".format(i//num_iters_per_epoch, loss_amount))
+                    coord.request_stop()
+                    coord.join(threads)
+                    np.save("{}_loss".format(name),loss_amounts)
+                    np.save("{}_v_acc".format(name), valid_accuracies)
+                    np.save("{}_t_acc".format(name), train_accuracies)
+        elif Q==1: # Part 2.1 Q1
+            for r in learning_rates:
+                loss_amounts = []
+                valid_accuracies = []
+                train_accuracies = []
+                print("Running learning rate", r)
+                with tf.Session() as sess:
+                    sess.run(tf.global_variables_initializer())
+                    sess.run(tf.local_variables_initializer())
+
+                    coord = tf.train.Coordinator()
+                    threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+                    for i in range(iters):
+                        # run one iteration of the optimizer
+                        sess.run([gradientOptimizer], feed_dict={learning_rate: r})
+                        # calculate our loss for this iteration
+                        if (i % num_iters_per_epoch == 0):
+                            loss_amount, train_acc, valid_acc = sess.run([train_logLoss, train_accuracy, valid_accuracy])
+                            print("Epoch {}, loss = {}".format(i//num_iters_per_epoch, loss_amount))
+                            print("\t Train Acc = {}, Valid Acc = {}".format(train_acc, valid_acc))
+                            loss_amounts.append(loss_amount)
+                            valid_accuracies.append(valid_acc)
+                            train_accuracies.append(train_acc)
+
+                    coord.request_stop()
+                    coord.join(threads)
+                    np.save("log_q1_"+str(r)+"_loss.npy", loss_amounts)
+                    np.save("log_q1_"+str(r)+"_valid_acc.npy", valid_accuracies)
+                    np.save("log_q1_"+str(r)+"_train_acc.npy", train_accuracies)
+        elif Q==3: # Part 2.1 Q3
             loss_amounts = []
             valid_accuracies = []
             train_accuracies = []
-            print("Running learning rate", r)
+            logOptimizer = tf.train.AdamOptimizer(learning_rate).minimize(logLoss)
             with tf.Session() as sess:
                 sess.run(tf.global_variables_initializer())
                 sess.run(tf.local_variables_initializer())
@@ -105,10 +113,10 @@ def binary_cross_entropy():
                 threads = tf.train.start_queue_runners(sess=sess, coord=coord)
                 for i in range(iters):
                     # run one iteration of the optimizer
-                    sess.run([optimizer], feed_dict={learning_rate: r})
+                    sess.run([logOptimizer], feed_dict={learning_rate: 0.001})
                     # calculate our loss for this iteration
                     if (i % num_iters_per_epoch == 0):
-                        loss_amount, train_acc, valid_acc = sess.run([loss, train_accuracy, valid_accuracy])
+                        loss_amount, train_acc, valid_acc = sess.run([train_logLoss, train_accuracy, valid_accuracy])
                         print("Epoch {}, loss = {}".format(i//num_iters_per_epoch, loss_amount))
                         print("\t Train Acc = {}, Valid Acc = {}".format(train_acc, valid_acc))
                         loss_amounts.append(loss_amount)
@@ -117,11 +125,44 @@ def binary_cross_entropy():
 
                 coord.request_stop()
                 coord.join(threads)
-                np.save("log_q1_"+str(r)+"_loss.npy", loss_amounts)
-                np.save("log_q1_"+str(r)+"_valid_acc.npy", valid_accuracies)
-                np.save("log_q1_"+str(r)+"_train_acc.npy", train_accuracies)
+                np.save("2.1.3_Log_loss",loss_amounts)
+                np.save("2.1.3_Log_v_acc", valid_accuracies)
+                np.save("2.1.3_Log_t_acc", train_accuracies)
 
+            loss_amounts = []
+            valid_accuracies = []
+            train_accuracies = []
+            lin_t_y_pred = tf.minimum(tf.maximum(tf.ceil(tf.matmul(xTrainTensor, w) + b), 0), 1)
+            lin_v_y_pred = tf.minimum(tf.maximum(tf.ceil(tf.matmul(xValidTensor, w) + b), 0), 1)
+            linearLoss = tf.reduce_mean(tf.square(y_pred - ybatch))
+            lin_accuracy = tf.count_nonzero(tf.equal(tf.minimum(tf.maximum(tf.ceil(y_pred), 0), 1), ybatch)) / yTrainTensor.shape[0]
+            lin_t_accuracy = tf.count_nonzero(tf.equal(lin_t_y_pred, yTrainTensor)) / yTrainTensor.shape[0]
+            lin_v_accuracy = tf.count_nonzero(tf.equal(lin_v_y_pred, yValidTensor)) / yValidTensor.shape[0]
+            linearOptimizer = tf.train.AdamOptimizer(learning_rate).minimize(linearLoss)
+            with tf.Session() as sess:
+                sess.run(tf.global_variables_initializer())
+                sess.run(tf.local_variables_initializer())
 
+                coord = tf.train.Coordinator()
+                threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+                for i in range(iters):
+                    # run one iteration of the optimizer
+                    sess.run([linearOptimizer], feed_dict={learning_rate: 0.001})
+                    # calculate our loss for this iteration
+                    if (i % num_iters_per_epoch == 0):
+                        loss_amount, train_acc, valid_acc = sess.run([linearLoss, lin_t_accuracy, lin_v_accuracy])
+                        print("Epoch {}, loss = {}".format(i//num_iters_per_epoch, loss_amount))
+                        print("\t Train Acc = {}, Valid Acc = {}".format(train_acc, valid_acc))
+                        loss_amounts.append(loss_amount)
+                        valid_accuracies.append(valid_acc)
+                        train_accuracies.append(train_acc)
+                np.save("2.1.3_Lin_loss",loss_amounts)
+                np.save("2.1.3_Lin_v_acc", valid_accuracies)
+                np.save("2.1.3_Lin_t_acc", train_accuracies)
 
-binary_cross_entropy()
+                coord.request_stop()
+                coord.join(threads)
+                
+            
 
+binary_cross_entropy(2)
