@@ -105,6 +105,7 @@ def binary_cross_entropy(Q=1):
             valid_accuracies = []
             train_accuracies = []
             logOptimizer = tf.train.AdamOptimizer(learning_rate).minimize(logLoss)
+            '''
             with tf.Session() as sess:
                 sess.run(tf.global_variables_initializer())
                 sess.run(tf.local_variables_initializer())
@@ -128,15 +129,16 @@ def binary_cross_entropy(Q=1):
                 np.save("2.1.3_Log_loss",loss_amounts)
                 np.save("2.1.3_Log_v_acc", valid_accuracies)
                 np.save("2.1.3_Log_t_acc", train_accuracies)
+            '''
 
             loss_amounts = []
             valid_accuracies = []
             train_accuracies = []
-            lin_t_y_pred = tf.minimum(tf.maximum(tf.ceil(tf.matmul(xTrainTensor, w) + b), 0), 1)
-            lin_v_y_pred = tf.minimum(tf.maximum(tf.ceil(tf.matmul(xValidTensor, w) + b), 0), 1)
+            lin_t_y_pred = tf.minimum(tf.maximum(tf.round(tf.matmul(xTrainTensor, w) + b), 0), 1)
+            lin_v_y_pred = tf.minimum(tf.maximum(tf.round(tf.matmul(xValidTensor, w) + b), 0), 1)
             linearLoss = tf.reduce_mean(tf.square(y_pred - ybatch))/2
             linearLoss_epoch = tf.reduce_mean(tf.square(tf.matmul(xTrainTensor, w) + b - yTrainTensor))/2
-            lin_accuracy = tf.count_nonzero(tf.equal(tf.minimum(tf.maximum(tf.ceil(y_pred), 0), 1), ybatch)) / yTrainTensor.shape[0]
+            lin_accuracy = tf.count_nonzero(tf.equal(tf.minimum(tf.maximum(tf.round(y_pred), 0), 1), ybatch)) / yTrainTensor.shape[0]
             lin_t_accuracy = tf.count_nonzero(tf.equal(lin_t_y_pred, yTrainTensor)) / yTrainTensor.shape[0]
             lin_v_accuracy = tf.count_nonzero(tf.equal(lin_v_y_pred, yValidTensor)) / yValidTensor.shape[0]
             linearOptimizer = tf.train.AdamOptimizer(learning_rate).minimize(linearLoss)
