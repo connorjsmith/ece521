@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-learning_rates = [1, 0.1, 0.01, 0.0001, 0.005, 0.001]
+learning_rates = [0.1, 0.01, 0.0001, 0.005, 0.001]
 for r in learning_rates:
     plt.figure(figsize=(8,6), dpi=80)
     plt.subplot(1,1,1)
@@ -31,19 +31,47 @@ for r in learning_rates:
 plt.figure(figsize=(8,6), dpi=80)
 plt.subplot(1,1,1)
 l01 = np.load("log_q1_0.1_loss.npy")
-l001 = np.load("log_q1_0.1_loss.npy")
-l1 = np.load("log_q1_1_loss.npy")
+l001 = np.load("log_q1_0.01_loss.npy")
 l0001 = np.load("log_q1_0.001_loss.npy")
 l0005 = np.load("log_q1_0.005_loss.npy")
 l00001 = np.load("log_q1_0.0001_loss.npy")
-plt.plot(l1, linewidth=1.0, linestyle='-', label="1.0")
 plt.plot(l01, linewidth=1.0, linestyle='-', label="0.1")
 plt.plot(l001, linewidth=1.0, linestyle='-', label="0.01")
 plt.plot(l0001, linewidth=1.0, linestyle='-', label="0.001")
 plt.plot(l0005, linewidth=1.0, linestyle='-', label="0.005")
 plt.plot(l00001, linewidth=1.0, linestyle='-', label="0.0001")
+plt.title("Effect of Learning Rate on Training Loss vs. Epoch")
 plt.xlabel("# of Epochs")
 plt.ylabel("Training Loss (Cross-Entropy Loss)")
-plt.legend(title="Training Rate ()", loc="upper right")
+plt.legend(title="Training Rate", loc="upper right")
 plt.grid('on', linestyle='-', linewidth=0.5)
 plt.savefig("learning_comparison_loss.pdf", format="pdf")
+
+
+plt.figure(figsize=(8,6), dpi=80)
+plt.subplot(1,1,1)
+l01 = np.load("log_q1_0.1_loss.npy")
+v01 = np.load("log_q1_0.1_v_loss.npy")
+plt.plot(l01, linewidth=1.0, linestyle='-', label="Training Set Loss")
+plt.plot(v01, linewidth=1.0, linestyle='-', label="Validation Set Loss")
+plt.title("Optimal Training and Validation Loss Curves")
+plt.xlabel("# of Epochs")
+plt.ylabel("Training Loss (Cross-Entropy Loss)")
+plt.legend(title="Data Set Cross-Entropy Loss", loc="upper right")
+plt.grid('on', linestyle='-', linewidth=0.5)
+plt.savefig("learning_0.1_optimal_loss.pdf", format="pdf")
+
+
+plt.figure(figsize=(8,6), dpi=80)
+plt.subplot(1,1,1)
+va01 = np.load("log_q1_0.1_valid_acc.npy")
+ta01 = np.load("log_q1_0.1_train_acc.npy")
+plt.plot(va01, linewidth=1.0, linestyle='-', label="Training Set Accuracy")
+plt.plot(ta01, linewidth=1.0, linestyle='-', label="Validation Set Accuracy")
+plt.title("Optimal Training and Validation Accuracy Curves")
+plt.xlabel("# of Epochs")
+plt.ylabel("Accuracy (Percentage Correctly Classified)")
+plt.legend(title="Data Set Accuracy", loc="lower right")
+plt.grid('on', linestyle='-', linewidth=0.5)
+plt.savefig("learning_0.1_optimal_acc.pdf", format="pdf")
+
