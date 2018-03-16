@@ -48,7 +48,6 @@ def SGD(xTrain, yTrain, batchSize, iters, learning_rate, decay_coefficient, use_
     decay_loss = dc*tf.sqrt(tf.reduce_sum(tf.square(weights)))/2
     total_loss = mse_loss + decay_loss
     full_mse_loss = tf.reduce_mean(tf.square(Y-tf.tensordot(x_in, weights, axes=1)))/2
-    #decay_loss should be average over minibatch as well
     full_total_loss = full_mse_loss + decay_loss
     if use_normal_eqn:
         grads = [tf.reshape(tf.reduce_mean(-tf.transpose((Y - z) * x_in) + tf.expand_dims(dc,axis = 0) * weights, axis=-1), (-1, 1)),]
@@ -127,14 +126,14 @@ def tuning_the_learning_rate():
 def effect_of_minibatch_size():
     iters = 20000
     batch_sizes = [500, 1500, 3500]
-    learning_rate = 0.005 # TODO get from tuning_the_learning_rate
+    learning_rate = 0.005
     decay_coefficient = 0
     losses = []
     
     (trainData, trainTarget, 
      testData, testTarget, 
      validData, validTarget) = load_data()
-    # TODO finish me
+    
     for i in range(0,len(batch_sizes)):
         time_start = time.clock()
         loss = SGD(trainData, trainTarget, batch_sizes[i], iters, learning_rate, decay_coefficient)[0]
@@ -208,7 +207,7 @@ def sgd_vs_normal_equation():
      testData, testTarget,
      validData, validTarget) = load_data()
     validation_accuracy = []
-    test_accuracy = [];
+    test_accuracy = []
     
     time_start = time.clock()
     (loss, wt) = SGD(trainData, trainTarget, batch_size, iters, learning_rate, decay_coefficient)
@@ -232,10 +231,26 @@ def sgd_vs_normal_equation():
         test_accuracy.append(sess.run(t_accuracy))
     
     time_start = time.clock()
-    (normal_loss, wt) = SGD(trainData, trainTarget, batch_size, iters, learning_rate, decay_coefficient, True)
+    train_linear = np.reshape(trainData, (trainData.shape[0], trainData.shape[1]*trainData.shape[2]))
+    x_in_train = tf.pad(train_linear, [[0, 0], [0, 1]], "CONSTANT", constant_values=1)
+    y_in_train = tf.constant(trainTarget, tf.float64)
+    inv = tf.matrix_inverse(tf.matmul(x_in_train,x_in_train,True))
+    wt = tf.matmul(inv, tf.matmul(x_in_train,y_in_train, True))    
     time_elapsed = (time.clock() - time_start)
     print("Time passed for normal = : " + str(time_elapsed))
     
+    z = tf.matmul(wt, x_in_train, True, True)
+    n_loss = tf.reduce_mean(tf.square(y_in_train-tf.transpose(z)))/(2)
+    with tf.Session() as sess:
+        normal_loss = sess.run(n_loss)
+    
+    train_linear = np.reshape(trainData, (trainData.shape[0], trainData.shape[1]*trainData.shape[2]))
+    x_in_train = tf.pad(train_linear, [[0, 0], [0, 1]], "CONSTANT", constant_values=1)
+    train_y_pred = tf.matmul(x_in_train, wt)
+    same_train = tf.equal(tf.greater(train_y_pred, tf.constant(0.5, tf.float64)), tf.constant(trainTarget, tf.bool))
+    tr_accuracy = tf.count_nonzero(same_train) / tf.constant(trainTarget).shape[0]
+    with tf.Session() as sess:
+        print(sess.run(tr_accuracy))
     
     valid_linear = np.reshape(validData, (validData.shape[0], validData.shape[1]*validData.shape[2]))
     x_in_valid = tf.pad(valid_linear, [[0, 0], [0, 1]], "CONSTANT", constant_values=1)
@@ -264,17 +279,9 @@ def sgd_vs_normal_equation():
     
     
     return (loss, normal_loss, validation_accuracy, test_accuracy)
-    
-def pickle_IO(ttlr):
-    with open('snapshot.pkl', 'wb')  as file:
-        _pickle.dump(ttlr, file, protocol=-1)
-    with open('snapshot.pkl', 'rb') as file:
-        ttlr_2 = _pickle.load(file)
-
-
 
 if __name__ == '__main__':
-#    plt_ttlr = tuning_the_learning_rate()
-#    losses = effect_of_minibatch_size()
-#    (valid, test) = generalization()
+    tuning_the_learning_rate()
+    losses = effect_of_minibatch_size()
+    (valid, test) = generalization()
     (l, nl, valid2, test2) = sgd_vs_normal_equation()
