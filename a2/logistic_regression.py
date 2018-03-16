@@ -23,6 +23,8 @@ def binary_cross_entropy(Q=1):
         # Get Data
         xTrainTensor = tf.constant(xTrain, dtype=tf.float32, name="X-Training")
         yTrainTensor = tf.constant(yTrain, dtype=tf.float32, name="Y-Training")
+        xTestTensor = tf.constant(xTest, dtype=tf.float32, name="X-Test")
+        yTestTensor = tf.constant(yTest, dtype=tf.float32, name="Y-Test")
         xValidTensor = tf.constant(xValid, dtype=tf.float32, name="X-Validation")
         yValidTensor = tf.constant(yValid, dtype=tf.float32, name="Y-Validation")
 
@@ -36,11 +38,14 @@ def binary_cross_entropy(Q=1):
 
         # setting up epoch loss function
         train_logLoss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=tf.matmul(xTrainTensor, w)+b, labels=yTrainTensor)) + decay * tf.nn.l2_loss(w)
+        valid_logLoss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=tf.matmul(xValidTensor, w)+b, labels=yValidTensor)) + decay * tf.nn.l2_loss(w)
 
         # accuracy function
         train_y_pred = tf.round(tf.sigmoid(tf.matmul(xTrainTensor, w) + b))
         valid_y_pred = tf.round(tf.sigmoid(tf.matmul(xValidTensor, w) + b))
+        test_y_pred = tf.round(tf.sigmoid(tf.matmul(xTestTensor, w) + b))
         train_accuracy = tf.count_nonzero(tf.equal(train_y_pred, yTrainTensor)) / yTrainTensor.shape[0]
+        test_accuracy = tf.count_nonzero(tf.equal(test_y_pred, yTestTensor)) / yTestTensor.shape[0]
         valid_accuracy = tf.count_nonzero(tf.equal(valid_y_pred, yValidTensor)) / yValidTensor.shape[0]
 
         # optimizer function
@@ -74,8 +79,10 @@ def binary_cross_entropy(Q=1):
         elif Q==1: # Part 2.1 Q1
             for r in learning_rates:
                 loss_amounts = []
+                v_loss_amounts = []
                 valid_accuracies = []
                 train_accuracies = []
+                test_accuracies = []
                 print("Running learning rate", r)
                 with tf.Session() as sess:
                     sess.run(tf.global_variables_initializer())
@@ -88,24 +95,28 @@ def binary_cross_entropy(Q=1):
                         sess.run([gradientOptimizer], feed_dict={learning_rate: r})
                         # calculate our loss for this iteration
                         if (i % num_iters_per_epoch == 0):
-                            loss_amount, train_acc, valid_acc = sess.run([train_logLoss, train_accuracy, valid_accuracy])
+                            loss_amount, v_loss_amount, train_acc, valid_acc, test_acc = sess.run([train_logLoss, valid_logLoss, train_accuracy, valid_accuracy, test_accuracy])
                             print("Epoch {}, loss = {}".format(i//num_iters_per_epoch, loss_amount))
                             print("\t Train Acc = {}, Valid Acc = {}".format(train_acc, valid_acc))
                             loss_amounts.append(loss_amount)
+                            v_loss_amounts.append(v_loss_amount)
                             valid_accuracies.append(valid_acc)
                             train_accuracies.append(train_acc)
+                            test_accuracies.append(test_acc)
 
                     coord.request_stop()
                     coord.join(threads)
                     np.save("log_q1_"+str(r)+"_loss.npy", loss_amounts)
+                    np.save("log_q1_"+str(r)+"_v_loss.npy", v_loss_amounts)
                     np.save("log_q1_"+str(r)+"_valid_acc.npy", valid_accuracies)
                     np.save("log_q1_"+str(r)+"_train_acc.npy", train_accuracies)
+                    np.save("log_q1_"+str(r)+"_test_acc.npy", test_accuracies)
         elif Q==3: # Part 2.1 Q3
             loss_amounts = []
             valid_accuracies = []
             train_accuracies = []
+            test_accuracies = []
             logOptimizer = tf.train.AdamOptimizer(learning_rate).minimize(logLoss)
-            '''
             with tf.Session() as sess:
                 sess.run(tf.global_variables_initializer())
                 sess.run(tf.local_variables_initializer())
@@ -117,19 +128,20 @@ def binary_cross_entropy(Q=1):
                     sess.run([logOptimizer], feed_dict={learning_rate: 0.001})
                     # calculate our loss for this iteration
                     if (i % num_iters_per_epoch == 0):
-                        loss_amount, train_acc, valid_acc = sess.run([train_logLoss, train_accuracy, valid_accuracy])
+                        loss_amount, train_acc, valid_acc, test_acc = sess.run([train_logLoss, train_accuracy, valid_accuracy, test_accuracy])
                         print("Epoch {}, loss = {}".format(i//num_iters_per_epoch, loss_amount))
                         print("\t Train Acc = {}, Valid Acc = {}".format(train_acc, valid_acc))
                         loss_amounts.append(loss_amount)
                         valid_accuracies.append(valid_acc)
                         train_accuracies.append(train_acc)
+                        test_accuracies.append(test_acc)
 
                 coord.request_stop()
                 coord.join(threads)
                 np.save("2.1.3_Log_loss",loss_amounts)
-                np.save("2.1.3_Log_v_acc", valid_accuracies)
-                np.save("2.1.3_Log_t_acc", train_accuracies)
-            '''
+                np.save("2.1.3_Log_valid_acc", valid_accuracies)
+                np.save("2.1.3_Log_train_acc", train_accuracies)
+                np.save("2.1.3_Log_test_acc", test_accuracies)
 
             loss_amounts = []
             valid_accuracies = []
@@ -165,7 +177,5 @@ def binary_cross_entropy(Q=1):
 
                 coord.request_stop()
                 coord.join(threads)
-                
-            
 
 binary_cross_entropy(3)
