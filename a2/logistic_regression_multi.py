@@ -47,6 +47,8 @@ def multiclass_not_mnist():
         yTrainTensor = tf.constant(yTrain, dtype=tf.float32, name="Y-Training")
         xValidTensor = tf.constant(xValid, dtype=tf.float32, name="X-Validation")
         yValidTensor = tf.constant(yValid, dtype=tf.float32, name="Y-Validation")
+        xTestTensor = tf.constant(xTest, dtype=tf.float32, name="X-Test")
+        yTestTensor = tf.constant(yTest, dtype=tf.float32, name="Y-Test")
 
         # Create randomly shuffled batches 
         Xslice, yslice = tf.train.slice_input_producer([xTrainTensor, yTrainTensor], num_epochs=None)
@@ -55,17 +57,21 @@ def multiclass_not_mnist():
 
         # setting up batch loss function
         y_pred = tf.matmul(Xbatch, w) + b
-        y_pred_t = tf.matmul(xTrainTensor, w) + b
+        y_pred_tr = tf.matmul(xTrainTensor, w) + b
         y_pred_v = tf.matmul(xValidTensor, w) + b
+        y_pred_te = tf.matmul(xValidTensor, w) + b
         softmaxLoss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_pred, labels=ybatch)) + decay * tf.nn.l2_loss(w)
-        softmaxLoss_t = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_pred_t, labels=yTrainTensor)) + decay * tf.nn.l2_loss(w)
-        softmaxLoss_v = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_pred_v, labels=yValidTensor)) + decay * tf.nn.l2_loss(w)
+        softmaxLoss_train = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_pred_tr, labels=yTrainTensor)) + decay * tf.nn.l2_loss(w)
+        softmaxLoss_valid = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_pred_v, labels=yValidTensor)) + decay * tf.nn.l2_loss(w)
+        softmaxLoss_test = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_pred_te, labels=yTestTensor)) + decay * tf.nn.l2_loss(w)
 
         # accuracy function TODO these are also probably wrong
         train_y_pred = tf.sigmoid(tf.matmul(xTrainTensor, w) + b)
         valid_y_pred = tf.sigmoid(tf.matmul(xValidTensor, w) + b)
+        test_y_pred = tf.sigmoid(tf.matmul(xTestTensor, w) + b)
         train_accuracy = tf.count_nonzero(tf.equal(tf.argmax(train_y_pred, 1), tf.argmax(yTrainTensor, 1))) / yTrainTensor.shape[0]
         valid_accuracy = tf.count_nonzero(tf.equal(tf.argmax(valid_y_pred, 1), tf.argmax(yValidTensor, 1))) / yValidTensor.shape[0]
+        test_accuracy = tf.count_nonzero(tf.equal(tf.argmax(test_y_pred, 1), tf.argmax(yTestTensor, 1))) / yTestTensor.shape[0]
 
         # optimizer function
         optimizer = tf.train.AdamOptimizer(learning_rate).minimize(softmaxLoss)
@@ -75,6 +81,7 @@ def multiclass_not_mnist():
             loss_amounts = []
             valid_accuracies = []
             train_accuracies = []
+            test_accuracies = []
             train_losses = []
             valid_losses = []
             with tf.Session() as sess:
@@ -85,18 +92,20 @@ def multiclass_not_mnist():
                 for i in range(iters):
                     sess.run([optimizer], feed_dict={learning_rate: r})
                     if (i % num_iters_per_epoch == 0):
-                        loss_amount, loss_t, loss_v, train_acc, valid_acc = sess.run([softmaxLoss, softmaxLoss_t, softmaxLoss_v, train_accuracy, valid_accuracy])
+                        loss_amount, loss_t, loss_v, train_acc, valid_acc, test_acc = sess.run([softmaxLoss, softmaxLoss_train, softmaxLoss_valid, train_accuracy, valid_accuracy, test_accuracy])
                         loss_amounts.append(loss_amount)
                         valid_accuracies.append(valid_acc)
+                        test_accuracies.append(test_acc)
                         train_accuracies.append(train_acc)
                         train_losses.append(loss_t)
                         valid_losses.append(loss_v)
                         print("Epoch: {}, Loss: {}, trainAcc: {}".format(i//num_iters_per_epoch, loss_amount, train_acc))
                 coord.request_stop()
                 coord.join(threads)
-                # np.save("2.2.1_{}_notmnist_loss".format(r), loss_amounts)
-                # np.save("2.2.1_{}_notmnist_v_acc".format(r), valid_accuracies)
-                # np.save("2.2.1_{}_notmnist_t_acc".format(r), train_accuracies)
+                np.save("2.2.1_{}_notmnist_loss".format(r), loss_amounts)
+                np.save("2.2.1_{}_notmnist_v_acc".format(r), valid_accuracies)
+                np.save("2.2.1_{}_notmnist_train_acc".format(r), train_accuracies)
+                np.save("2.2.1_{}_notmnist_test_acc".format(r), test_accuracies)
                 np.save("2.2.1_{}_notmnist_t_loss".format(r), train_losses)
                 np.save("2.2.1_{}_notmnist_v_loss".format(r), valid_losses)
 
