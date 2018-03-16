@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-learning_rates = [0.0001, 0.005, 0.001]
+learning_rates = [1, 0.1, 0.0001, 0.005, 0.001]
 for r in learning_rates:
     plt.figure(figsize=(8,6), dpi=80)
     plt.subplot(1,1,1)
@@ -30,9 +30,13 @@ for r in learning_rates:
 
 plt.figure(figsize=(8,6), dpi=80)
 plt.subplot(1,1,1)
+l01 = np.load("log_q1_0.1_loss.npy")
+l1 = np.load("log_q1_1_loss.npy")
 l0001 = np.load("log_q1_0.001_loss.npy")
 l0005 = np.load("log_q1_0.005_loss.npy")
 l00001 = np.load("log_q1_0.0001_loss.npy")
+plt.plot(l1, linewidth=1.0, linestyle='-', label="1.0")
+plt.plot(l01, linewidth=1.0, linestyle='-', label="0.1")
 plt.plot(l0001, linewidth=1.0, linestyle='-', label="0.001")
 plt.plot(l0005, linewidth=1.0, linestyle='-', label="0.005")
 plt.plot(l00001, linewidth=1.0, linestyle='-', label="0.0001")
