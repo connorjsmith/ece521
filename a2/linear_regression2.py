@@ -213,7 +213,7 @@ def sgd_vs_normal_equation():
     time_start = time.clock()
     (loss, wt) = SGD(trainData, trainTarget, batch_size, iters, learning_rate, decay_coefficient)
     time_elapsed = (time.clock() - time_start)
-    print("Time passed for SGD = " + str(decay_coefficients[i]) + ": " + str(time_elapsed))
+    print("Time passed for SGD = : " + str(time_elapsed))
     
     valid_linear = np.reshape(validData, (validData.shape[0], validData.shape[1]*validData.shape[2]))
     x_in_valid = tf.pad(valid_linear, [[0, 0], [0, 1]], "CONSTANT", constant_values=1)
@@ -234,7 +234,7 @@ def sgd_vs_normal_equation():
     time_start = time.clock()
     (normal_loss, wt) = SGD(trainData, trainTarget, batch_size, iters, learning_rate, decay_coefficient, True)
     time_elapsed = (time.clock() - time_start)
-    print("Time passed for normal = " + str(decay_coefficients[i]) + ": " + str(time_elapsed))
+    print("Time passed for normal = : " + str(time_elapsed))
     
     
     valid_linear = np.reshape(validData, (validData.shape[0], validData.shape[1]*validData.shape[2]))
@@ -276,5 +276,5 @@ def pickle_IO(ttlr):
 if __name__ == '__main__':
 #    plt_ttlr = tuning_the_learning_rate()
 #    losses = effect_of_minibatch_size()
-    (valid, test) = generalization()
+#    (valid, test) = generalization()
     (l, nl, valid2, test2) = sgd_vs_normal_equation()
