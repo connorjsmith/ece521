@@ -16,6 +16,44 @@ plt.legend(title="Training Rate and Decay", loc="lower right")
 plt.grid('on', linestyle='-', linewidth=0.5)
 plt.savefig("multiclass_facescrub_loss_comparison.pdf", format="pdf")
 
+plt.figure(figsize=(8,6), dpi=80)
+plt.subplot(1,1,1)
+for r in learning_rates:
+    for d in decay_rates:
+        l = np.load("2.2.2_r{}_d{}_facescrub_train_acc.npy".format(r, d))
+        plt.plot(l, linewidth=1.0, linestyle='-', label=("Learning Rate = {} Decay = {} Loss".format(r, d)))
+plt.title("Mini-Batch Size B=300", fontsize=10)
+plt.xlabel("# of Epochs")
+plt.ylabel("Test Accuracy")
+plt.legend(title="Training Rate and Decay", loc="lower right")
+plt.grid('on', linestyle='-', linewidth=0.5)
+plt.savefig("multiclass_facescrub_train_acc_comparison.pdf", format="pdf")
+
+plt.figure(figsize=(8,6), dpi=80)
+plt.subplot(1,1,1)
+for r in learning_rates:
+    for d in decay_rates:
+        l = np.load("2.2.2_r{}_d{}_facescrub_v_acc.npy".format(r, d))
+        plt.plot(l, linewidth=1.0, linestyle='-', label=("Learning Rate = {} Decay = {} Loss".format(r, d)))
+plt.title("Mini-Batch Size B=300", fontsize=10)
+plt.xlabel("# of Epochs")
+plt.ylabel("Test Accuracy")
+plt.legend(title="Training Rate and Decay", loc="lower right")
+plt.grid('on', linestyle='-', linewidth=0.5)
+plt.savefig("multiclass_facescrub_valid_acc_comparison.pdf", format="pdf")
+
+plt.figure(figsize=(8,6), dpi=80)
+plt.subplot(1,1,1)
+for r in learning_rates:
+    for d in decay_rates:
+        l = np.load("2.2.2_r{}_d{}_facescrub_test_acc.npy".format(r, d))
+        plt.plot(l, linewidth=1.0, linestyle='-', label=("Learning Rate = {} Decay = {} Loss".format(r, d)))
+plt.title("Mini-Batch Size B=300", fontsize=10)
+plt.xlabel("# of Epochs")
+plt.ylabel("Test Accuracy")
+plt.legend(title="Training Rate and Decay", loc="lower right")
+plt.grid('on', linestyle='-', linewidth=0.5)
+plt.savefig("multiclass_facescrub_test_acc_comparison.pdf", format="pdf")
 
 '''
 plt.figure(figsize=(8,6), dpi=80)
