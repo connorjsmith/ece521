@@ -23,7 +23,7 @@ def load_notmnist_data():
         t[np.arange(testTarget.shape[0]), testTarget] = 1
         testTarget = t
         return (trainData.reshape(trainData.shape[0], -1), trainTarget, validData.reshape(validData.shape[0], -1), validTarget, testData.reshape(testData.shape[0], -1), testTarget)
-        
+
 
 def multiclass_not_mnist():
     xTrain, yTrain, xValid, yValid, xTest, yTest = load_notmnist_data()
@@ -31,9 +31,9 @@ def multiclass_not_mnist():
         decay = 0.01
         B = 500
         iters = 10000
-        learning_rates = [0.005] # [0.001, 0.005, 0.0025, 0.0005, 0.0001]
+        learning_rates = [0.001, 0.005, 0.0025, 0.0005, 0.0001]
         learning_rate = tf.placeholder(dtype=tf.float32, name="learning-rate")
-        
+
 
         num_iters_per_epoch = len(xTrain)//B # number of iterations we have to do for one epoch
         print("Num epochs = ",iters/num_iters_per_epoch)
@@ -50,7 +50,7 @@ def multiclass_not_mnist():
         xTestTensor = tf.constant(xTest, dtype=tf.float32, name="X-Test")
         yTestTensor = tf.constant(yTest, dtype=tf.float32, name="Y-Test")
 
-        # Create randomly shuffled batches 
+        # Create randomly shuffled batches
         Xslice, yslice = tf.train.slice_input_producer([xTrainTensor, yTrainTensor], num_epochs=None)
 
         Xbatch, ybatch = tf.train.batch([Xslice, yslice], batch_size = B)
@@ -59,7 +59,7 @@ def multiclass_not_mnist():
         y_pred = tf.matmul(Xbatch, w) + b
         y_pred_tr = tf.matmul(xTrainTensor, w) + b
         y_pred_v = tf.matmul(xValidTensor, w) + b
-        y_pred_te = tf.matmul(xValidTensor, w) + b
+        y_pred_te = tf.matmul(xTestTensor, w) + b
         softmaxLoss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_pred, labels=ybatch)) + decay * tf.nn.l2_loss(w)
         softmaxLoss_train = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_pred_tr, labels=yTrainTensor)) + decay * tf.nn.l2_loss(w)
         softmaxLoss_valid = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_pred_v, labels=yValidTensor)) + decay * tf.nn.l2_loss(w)
