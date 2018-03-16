@@ -24,6 +24,45 @@ def load_notmnist_data():
         testTarget = t
         return (trainData.reshape(trainData.shape[0], -1), trainTarget, validData.reshape(validData.shape[0], -1), validTarget, testData.reshape(testData.shape[0], -1), testTarget)
 
+def load_facescrub_data(task=0):
+    # task = 0 >> select the name ID targets for face recognition task
+    # task = 1 >> select the gender ID targets for gender recognition task
+    data = np.load("./facescrub_data.npy")/255.0
+    data = np.reshape(data, [-1, 32*32])
+
+    target = np.load("./facescrub_target.npy")
+
+    np.random.seed(45689)
+    rnd_idx = np.arange(np.shape(data)[0])
+    np.random.shuffle(rnd_idx)
+
+    trBatch = int(0.8*len(rnd_idx))
+    validBatch = int(0.1*len(rnd_idx))
+
+    trainData, validData, testData = data[rnd_idx[1:trBatch],:], \
+    data[rnd_idx[trBatch+1:trBatch + validBatch],:],\
+    data[rnd_idx[trBatch + validBatch+1:-1],:]
+
+    trainTarget, validTarget, testTarget = target[rnd_idx[1:trBatch], task], \
+    target[rnd_idx[trBatch+1:trBatch + validBatch], task],\
+    target[rnd_idx[trBatch + validBatch + 1:-1], task]
+
+    t = np.zeros((testTarget.shape[0], 6))
+    t[np.arange(testTarget.shape[0]), testTarget] = 1
+    testTarget = t
+
+    t = np.zeros((validTarget.shape[0], 6))
+    t[np.arange(validTarget.shape[0]), validTarget] = 1
+    validTarget = t
+
+    t = np.zeros((trainTarget.shape[0], 6))
+    t[np.arange(trainTarget.shape[0]), trainTarget] = 1
+    trainTarget = t
+
+
+    return trainData.reshape(trainData.shape[0], -1), trainTarget, validData.reshape(validData.shape[0], -1), validTarget, testData.reshape(testData.shape[0], -1), testTarget
+
+
 
 def multiclass_not_mnist():
     xTrain, yTrain, xValid, yValid, xTest, yTest = load_notmnist_data()
@@ -110,4 +149,91 @@ def multiclass_not_mnist():
                 np.save("2.2.1_{}_notmnist_v_loss".format(r), valid_losses)
 
 
-multiclass_not_mnist()
+def multiclass_facescrub():
+    xTrain, yTrain, xValid, yValid, xTest, yTest = load_facescrub_data()
+    with tf.Graph().as_default():
+        B = 300
+        iters = 2000
+        learning_rates = [0.01, 0.005, 0.001, 0.0001]
+        decay_rates = [0.1, 0.01, 0.001, 0]
+        learning_rate = tf.placeholder(dtype=tf.float32, name="learning-rate")
+        decay = tf.placeholder(dtype=tf.float32, name="decay")
+
+
+        num_iters_per_epoch = len(xTrain)//B # number of iterations we have to do for one epoch
+        print("Num epochs = ",iters/num_iters_per_epoch)
+
+        # optimized parameters
+        w = tf.Variable(tf.truncated_normal(shape=[1024,6], stddev=0.5, seed=521), dtype=tf.float32, name="weight-vector")
+        b = tf.Variable(tf.zeros([1]), dtype=tf.float32, name="bias-term")
+
+        # input tensors
+        xTrainTensor = tf.constant(xTrain, dtype=tf.float32, name="X-Training")
+        yTrainTensor = tf.constant(yTrain, dtype=tf.float32, name="Y-Training")
+        xValidTensor = tf.constant(xValid, dtype=tf.float32, name="X-Validation")
+        yValidTensor = tf.constant(yValid, dtype=tf.float32, name="Y-Validation")
+        xTestTensor = tf.constant(xTest, dtype=tf.float32, name="X-Test")
+        yTestTensor = tf.constant(yTest, dtype=tf.float32, name="Y-Test")
+
+        # Create randomly shuffled batches
+        Xslice, yslice = tf.train.slice_input_producer([xTrainTensor, yTrainTensor], num_epochs=None)
+
+        Xbatch, ybatch = tf.train.batch([Xslice, yslice], batch_size = B)
+
+        # setting up batch loss function
+        y_pred = tf.matmul(Xbatch, w) + b
+        y_pred_tr = tf.matmul(xTrainTensor, w) + b
+        y_pred_v = tf.matmul(xValidTensor, w) + b
+        y_pred_te = tf.matmul(xTestTensor, w) + b
+        softmaxLoss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_pred, labels=ybatch)) + decay * tf.nn.l2_loss(w)
+        softmaxLoss_train = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_pred_tr, labels=yTrainTensor)) + decay * tf.nn.l2_loss(w)
+        softmaxLoss_valid = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_pred_v, labels=yValidTensor)) + decay * tf.nn.l2_loss(w)
+        softmaxLoss_test = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y_pred_te, labels=yTestTensor)) + decay * tf.nn.l2_loss(w)
+
+        # accuracy function TODO these are also probably wrong
+        train_y_pred = tf.sigmoid(tf.matmul(xTrainTensor, w) + b)
+        valid_y_pred = tf.sigmoid(tf.matmul(xValidTensor, w) + b)
+        test_y_pred = tf.sigmoid(tf.matmul(xTestTensor, w) + b)
+        train_accuracy = tf.count_nonzero(tf.equal(tf.argmax(train_y_pred, 1), tf.argmax(yTrainTensor, 1))) / yTrainTensor.shape[0]
+        valid_accuracy = tf.count_nonzero(tf.equal(tf.argmax(valid_y_pred, 1), tf.argmax(yValidTensor, 1))) / yValidTensor.shape[0]
+        test_accuracy = tf.count_nonzero(tf.equal(tf.argmax(test_y_pred, 1), tf.argmax(yTestTensor, 1))) / yTestTensor.shape[0]
+
+        # optimizer function
+        optimizer = tf.train.AdamOptimizer(learning_rate).minimize(softmaxLoss)
+
+        for r in learning_rates:
+            for d in decay_rates:
+                print("Running learning rate {} with decay {}".format(r, d))
+                loss_amounts = []
+                valid_accuracies = []
+                train_accuracies = []
+                test_accuracies = []
+                train_losses = []
+                valid_losses = []
+                with tf.Session() as sess:
+                    coord = tf.train.Coordinator()
+                    threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+                    sess.run(tf.global_variables_initializer())
+                    sess.run(tf.local_variables_initializer())
+                    for i in range(iters):
+                        sess.run([optimizer], feed_dict={learning_rate: r, decay: d})
+                        if (i % num_iters_per_epoch == 0):
+                            loss_amount, loss_t, loss_v, train_acc, valid_acc, test_acc = sess.run([softmaxLoss, softmaxLoss_train, softmaxLoss_valid, train_accuracy, valid_accuracy, test_accuracy], feed_dict={decay: d})
+                            loss_amounts.append(loss_amount)
+                            valid_accuracies.append(valid_acc)
+                            test_accuracies.append(test_acc)
+                            train_accuracies.append(train_acc)
+                            train_losses.append(loss_t)
+                            valid_losses.append(loss_v)
+                            print("Epoch: {}, Loss: {}, trainAcc: {}".format(i//num_iters_per_epoch, loss_amount, train_acc))
+                    coord.request_stop()
+                    coord.join(threads)
+                    np.save("2.2.2_r{}_d{}_facescrub_loss".format(r, d), loss_amounts)
+                    np.save("2.2.2_r{}_d{}_facescrub_v_acc".format(r, d), valid_accuracies)
+                    np.save("2.2.2_r{}_d{}_facescrub_train_acc".format(r, d), train_accuracies)
+                    np.save("2.2.2_r{}_d{}_facescrub_test_acc".format(r, d), test_accuracies)
+                    np.save("2.2.2_r{}_d{}_facescrub_t_loss".format(r, d), train_losses)
+                    np.save("2.2.2_r{}_d{}_facescrub_v_loss".format(r, d), valid_losses)
+
+
+multiclass_facescrub()
