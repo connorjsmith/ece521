@@ -18,8 +18,3 @@ def create_new_layer(input_tensor, num_hidden_units):
 
     # Return this operation
     return output_tensor
-    
-with tf.Session() as sess:
-    t = tf.constant([[1.],[2.],[3.]])
-    create_new_layer(t, 3)
-    create_new_layer(t, 4)
