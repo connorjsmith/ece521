@@ -1,6 +1,27 @@
+import numpy as np
 import tensorflow as tf
-import neural_networks.py as nns
-import util.py as ut
+
+def load_notMNIST():
+    with np.load("notMNIST.npz") as data:
+        Data, Target = data["images"], data["labels"]
+        np.random.seed(521)
+        randIndx = np.arange(len(Data))
+        np.random.shuffle(randIndx)
+        Data = Data[randIndx]/255
+        Target = Target[randIndx]
+        trainData, trainTarget = Data[:15000], Target[:15000]
+        t = np.zeros((trainTarget.shape[0], 10))
+        t[np.arange(trainTarget.shape[0]), trainTarget] = 1
+        trainTarget = t
+        validData, validTarget = Data[15000:16000], Target[15000:16000]
+        t = np.zeros((validTarget.shape[0], 10))
+        t[np.arange(validTarget.shape[0]), validTarget] = 1
+        validTarget = t
+        testData, testTarget = Data[16000:], Target[16000:]
+        t = np.zeros((testTarget.shape[0], 10))
+        t[np.arange(testTarget.shape[0]), testTarget] = 1
+        testTarget = t
+        return (trainData.reshape(trainData.shape[0], -1), trainTarget, validData.reshape(validData.shape[0], -1), validTarget, testData.reshape(testData.shape[0], -1), testTarget)
 
 def create_new_layer(input_tensor, num_hidden_units):
     '''
@@ -25,34 +46,31 @@ def number_of_hidden_units():
     '''
     '''
     # Constants
-    decay = 0.0003
     B = 500
-    iters = 10000
-    lr = 0.005
+    iters = 5000
+    learning_rates = [0.01, 0.005, 0.001]
     hidden_units = [100,500,1000]
+    output_data = [[],[],[]]
     
     # Load data
     (trainData, trainTarget, validData, validTarget,
-         testData, testTarget) = ut.load_notMNIST()
+         testData, testTarget) = load_notMNIST()
     
     # Precalculations
     num_iters_per_epoch = len(trainData)//B # number of iterations we have to do for one epoch
     print("Num epochs = ",iters/num_iters_per_epoch)
 	
-    Xslice, Yslice = tf.train.slice_input_producer([trainData, trainTarget], num_epochs=None)
-    Xbatch, Ybatch = tf.train.batch([Xslice, Yslice], batch_size = B)
-	
     # Set place-holders & variables
-    X = tf.placeholder(tf.float64, shape=(None, trainData.shape[0]), name='X')
-    Y = tf.placeholder(tf.float64, shape=(None, 10), name='Y')
+    X = tf.placeholder(tf.float32, shape=(None, trainData.shape[-1]), name='X')
+    Y = tf.placeholder(tf.float32, shape=(None, 10), name='Y')
+    learning_rate = tf.placeholder(tf.float32, name='learning-rate')
 	
     for h in range(0, len(hidden_units)):
-        
         # Build graph
-        with tf.variable_scope("layer1"):
-            s_1 = create_new_layer(X, hidden_units(h))
+        with tf.variable_scope("layer1_"+str(hidden_units[h]), reuse=tf.AUTO_REUSE):
+            s_1 = create_new_layer(X, hidden_units[h])
         x_1 = tf.nn.relu(s_1)
-        with tf.variable_scope("layer2"):
+        with tf.variable_scope("layer2_"+str(hidden_units[h]), reuse=tf.AUTO_REUSE):
             s_2 = create_new_layer(x_1, 10)
         x_2 = tf.nn.softmax(s_2)
 		
@@ -60,19 +78,34 @@ def number_of_hidden_units():
         loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=x_2, labels=Y))
         accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(x_2, 1), tf.argmax(Y, 1)), tf.float32))
         
-        print("Number of hidden units", h)
+        print("Number of hidden units", hidden_units[h])
 
         with tf.Session() as sess:
-            optimizer = tf.train.AdamOptimizer(lr).minimize(loss)
-            coord = tf.train.Coordinator()
-            threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-            sess.run(tf.global_variables_initializer())
-            sess.run(tf.local_variables_initializer())
-            for i in range(iters):
-                sess.run([optimizer], feed_dict={X: Xbatch, Y: Ybatch})
-                if (i % num_iters_per_epoch == 0):
-                    t_loss, t_acc = sess.run([loss, accuracy], feed_dict={X: trainData, Y: trainTarget})
-                    v_loss, v_acc = sess.run([loss, accuracy], feed_dict={X: validData, Y: validTarget})
-                    test_loss, test_acc = sess.run([loss, accuracy], feed_dict={X: testData, Y: testTarget})
-                    print("Epoch: {}, Training Loss: {}, Accuracies: [{}, {}, {}]".format(i//num_iters_per_epoch, t_loss, t_acc, v_acc, test_acc))
-        
+            with tf.variable_scope("default", reuse=tf.AUTO_REUSE):
+                optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss)
+                coord = tf.train.Coordinator()
+                threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+                sess.run(tf.global_variables_initializer())
+                sess.run(tf.local_variables_initializer())
+                inds = np.arange(trainData.shape[0])
+                for lr in range(len(learning_rates)):
+                    print("Learning rate = ",learning_rates[lr])
+                    temp_output = []
+                    for i in range(iters):
+                        if (i % num_iters_per_epoch == 0):
+                            np.random.shuffle(inds)
+                        sess.run([optimizer], feed_dict={learning_rate: learning_rates[lr], 
+                                 X: trainData[inds[B*(i%num_iters_per_epoch):B*((i+1)%num_iters_per_epoch)]], 
+                                 Y: trainTarget[inds[B*(i%num_iters_per_epoch):B*((i+1)%num_iters_per_epoch)]]})
+                        if (i % num_iters_per_epoch == 0):
+                            t_loss, t_acc = sess.run([loss, accuracy], feed_dict={X: trainData, Y: trainTarget})
+                            v_loss, v_acc = sess.run([loss, accuracy], feed_dict={X: validData, Y: validTarget})
+                            test_loss, test_acc = sess.run([loss, accuracy], feed_dict={X: testData, Y: testTarget})
+                            print("Epoch: {}, Training Loss: {}, Accuracies: [{}, {}, {}]".format(i//num_iters_per_epoch, t_loss, t_acc, v_acc, test_acc))
+                            temp_output.append([t_loss, t_acc, v_acc, test_acc])
+                    output_data[h].append(temp_output)
+            
+    return output_data
+
+output = number_of_hidden_units()
+np.save('Q1-2-1.npy', output)
