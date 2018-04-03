@@ -59,6 +59,7 @@ def number_of_hidden_units():
     # Precalculations
     num_iters_per_epoch = len(trainData)//B # number of iterations we have to do for one epoch
     print("Num epochs = ",iters/num_iters_per_epoch)
+    inds = np.arange(trainData.shape[0])
 	
     # Set place-holders & variables
     X = tf.placeholder(tf.float32, shape=(None, trainData.shape[-1]), name='X')
@@ -66,29 +67,28 @@ def number_of_hidden_units():
     learning_rate = tf.placeholder(tf.float32, name='learning-rate')
 	
     for h in range(0, len(hidden_units)):
-        # Build graph
-        with tf.variable_scope("layer1_"+str(hidden_units[h]), reuse=tf.AUTO_REUSE):
-            s_1 = create_new_layer(X, hidden_units[h])
-        x_1 = tf.nn.relu(s_1)
-        with tf.variable_scope("layer2_"+str(hidden_units[h]), reuse=tf.AUTO_REUSE):
-            s_2 = create_new_layer(x_1, 10)
-        x_2 = tf.nn.softmax(s_2)
-		
-        # Calculate loss & accuracy
-        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=s_2, labels=Y))
-        accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(x_2, 1), tf.argmax(Y, 1)), tf.float32))
-        
-        print("Number of hidden units", hidden_units[h])
-
-        with tf.Session() as sess:
-            with tf.variable_scope("default", reuse=tf.AUTO_REUSE):
-                optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss)
-                coord = tf.train.Coordinator()
-                threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-                sess.run(tf.global_variables_initializer())
-                sess.run(tf.local_variables_initializer())
-                inds = np.arange(trainData.shape[0])
-                for lr in range(len(learning_rates)):
+        for lr in range(len(learning_rates)):
+            # Build graph
+            with tf.variable_scope("layer1_"+str(hidden_units[h])+"_"+str(lr), reuse=tf.AUTO_REUSE):
+                s_1 = create_new_layer(X, hidden_units[h])
+            x_1 = tf.nn.relu(s_1)
+            with tf.variable_scope("layer2_"+str(hidden_units[h])+"_"+str(lr), reuse=tf.AUTO_REUSE):
+                s_2 = create_new_layer(x_1, 10)
+            x_2 = tf.nn.softmax(s_2)
+    		
+            # Calculate loss & accuracy
+            loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=s_2, labels=Y))
+            accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(x_2, 1), tf.argmax(Y, 1)), tf.float32))
+            
+            print("Number of hidden units", hidden_units[h])
+    
+            with tf.Session() as sess:
+                with tf.variable_scope("default", reuse=tf.AUTO_REUSE):
+                    optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss)
+                    coord = tf.train.Coordinator()
+                    threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+                    sess.run(tf.global_variables_initializer())
+                    sess.run(tf.local_variables_initializer())
                     print("Learning rate = ",learning_rates[lr])
                     temp_output = []
                     for i in range(iters):
