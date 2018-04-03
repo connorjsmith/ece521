@@ -75,7 +75,7 @@ def number_of_hidden_units():
         x_2 = tf.nn.softmax(s_2)
 		
         # Calculate loss & accuracy
-        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=x_2, labels=Y))
+        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=s_2, labels=Y))
         accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(x_2, 1), tf.argmax(Y, 1)), tf.float32))
         
         print("Number of hidden units", hidden_units[h])
