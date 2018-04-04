@@ -80,7 +80,7 @@ def learning():
             # Create neural network layers for training
             trainb_batchOutput = create_new_layer(Xbatch, num_hidden_units)
             trainb_activatedOutput = tf.nn.relu(trainb_batchOutput)
-            
+
             scope.reuse_variables()
             layer1_w = tf.get_variable("Layer1_W", shape=[784, num_hidden_units], dtype=tf.float32)
             layer1_b = tf.get_variable("Layer1_b", shape=[1, num_hidden_units], dtype=tf.float32)
@@ -113,15 +113,27 @@ def learning():
         optimizer = tf.train.AdamOptimizer(learning_rate).minimize(trainb_softmaxLoss)
 
         # TODO run a lot of iterations, plot loss vs epochs and classification error vs epochs
-        with tf.Session() as sess:
-            coord = tf.train.Coordinator()
-            threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-            sess.run(tf.global_variables_initializer())
-            sess.run(tf.local_variables_initializer())
-            for i in range(iters):
-                sess.run([optimizer], feed_dict={learning_rate: 0.005})
-                if (i % num_iters_per_epoch == 0):
-                    t_loss, t_acc, v_acc, test_acc = sess.run([train_softmaxLoss, train_accuracy, valid_accuracy, test_accuracy])
-                    print("Epoch: {}, Training Loss: {}, Accuracies: [{}, {}, {}]".format(i//num_iters_per_epoch, t_loss, t_acc, v_acc, test_acc))
-
+        for r in learning_rates:
+            loss_amounts = []
+            train_accs = []
+            test_accs = []
+            valid_accs = []
+            with tf.Session() as sess:
+                coord = tf.train.Coordinator()
+                threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+                sess.run(tf.global_variables_initializer())
+                sess.run(tf.local_variables_initializer())
+                for i in range(iters):
+                    sess.run([optimizer], feed_dict={learning_rate: r})
+                    if (i % num_iters_per_epoch == 0):
+                        t_loss, t_acc, v_acc, test_acc = sess.run([train_softmaxLoss, train_accuracy, valid_accuracy, test_accuracy])
+                        print("Epoch: {}, Training Loss: {}, Accuracies: [{}, {}, {}]".format(i//num_iters_per_epoch, t_loss, t_acc, v_acc, test_acc))
+                        loss_amounts.append(t_loss)
+                        train_accs.append(t_acc)
+                        test_accs.append(test_acc)
+                        valid_accs.append(v_acc)
+                np.save("1.1.2_r{}_loss".format(r), loss_amounts)
+                np.save("1.1.2_r{}_train_acc".format(r), train_accs)
+                np.save("1.1.2_r{}_test_acc".format(r), test_accs)
+                np.save("1.1.2_r{}_valid_acc".format(r), valid_accs)
 learning()
