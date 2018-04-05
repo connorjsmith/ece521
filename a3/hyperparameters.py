@@ -112,7 +112,7 @@ def number_of_layers():
     '''
     '''
     # Constants
-    B = 500
+    B = 250
     iters = 5000
     learning_rates = [0.01, 0.005, 0.001, 0.0005, 0.0001]
     hidden_units = [500]
