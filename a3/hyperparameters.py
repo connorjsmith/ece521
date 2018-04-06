@@ -43,8 +43,6 @@ def create_new_layer(input_tensor, num_hidden_units):
     return output_tensor
 
 def number_of_hidden_units():
-    '''
-    '''
     # Constants
     B = 500
     iters = 5000
@@ -109,8 +107,6 @@ def number_of_hidden_units():
     return output_data
 
 def number_of_layers():
-    '''
-    '''
     # Constants
     B = 250
     iters = 5000
