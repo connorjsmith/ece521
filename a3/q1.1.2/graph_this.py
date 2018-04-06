@@ -50,7 +50,6 @@ for r in learning_rates:
     l = np.load("1.1.2_r{}_test_acc.npy".format(r))
     l *= 100
     plt.plot(l, linewidth=1.0, linestyle='-', label="Learning Rate = {}".format(r))
-    plt.plot(l, linewidth=1.0, linestyle='-', label="Learning Rate = {}".format(r))
 plt.grid('on', linestyle='-', linewidth=0.5)
 plt.legend(title="Training Rate", loc="lower right")
 plt.savefig("1.1.2_test_acc_comparison.pdf".format(r), format="pdf")
